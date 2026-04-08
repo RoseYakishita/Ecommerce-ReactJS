@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  api:
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ecom_api
+    restart: unless-stopped
+    ports:
+      - '3000:3000'
+    env_file:
+      - ./backend/.env
+    environment:
+      - DB_HOST=db
+      - DB_PORT=3306
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - ecom_network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: ecom_frontend
+    restart: unless-stopped
+    ports:
+      - '80:80'
+    depends_on:
+      - api
+    networks:
+      - ecom_network
+
+  db:
+    image: mysql:8.0
+    container_name: ecom_db
+    restart: unless-stopped
+    ports:
+      - '3306:3306'
+    env_file:
+      - ./backend/.env
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root_password}
+      MYSQL_DATABASE: ${DB_DATABASE:-ecom_DB}
+      MYSQL_USER: ${DB_USERNAME:-rose}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-33213}
+    volumes:
+      - db_data:/var/lib/mysql
+    networks:
+      - ecom_network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  db_data:
+
+networks:
+  ecom_network:
