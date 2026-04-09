@@ -1,8 +1,4 @@
-<<<<<<< HEAD
 import { useState, useEffect, useCallback } from 'react';
-=======
-import { useState, useEffect } from 'react';
->>>>>>> 35a7c14142a8e3e8c898c99bb4a8ffdb59299344
 import { 
   getProducts, 
   getCategories, 
@@ -15,10 +11,6 @@ import {
   updateProductApi,
   updateCategoryApi,
 } from '../services/api';
-<<<<<<< HEAD
-=======
-import useStore from '../store/useStore';
->>>>>>> 35a7c14142a8e3e8c898c99bb4a8ffdb59299344
 import Button from '../components/Button';
 
 export default function AdminDashboard() {
@@ -34,11 +26,7 @@ export default function AdminDashboard() {
   const [showCategoryForm, setShowCategoryForm] = useState(false);
 
   // Fetch Data
-<<<<<<< HEAD
   const fetchData = useCallback(async () => {
-=======
-  const fetchData = async () => {
->>>>>>> 35a7c14142a8e3e8c898c99bb4a8ffdb59299344
     setLoading(true);
     try {
       const [prodResponse, catData, ordData] = await Promise.all([
@@ -56,19 +44,11 @@ export default function AdminDashboard() {
     } finally {
       setLoading(false);
     }
-<<<<<<< HEAD
   }, [currentPage]);
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
-=======
-  };
-
-  useEffect(() => {
-    fetchData();
-  }, [currentPage]);
->>>>>>> 35a7c14142a8e3e8c898c99bb4a8ffdb59299344
 
   if (loading) return <div className="p-8 text-center text-textLight">Loading dashboard...</div>;
 
@@ -333,11 +313,7 @@ function CategoriesManager({ categories, refresh, showForm, setShowForm }) {
       }
       handleCancel();
       refresh();
-<<<<<<< HEAD
     } catch {
-=======
-    } catch (err) {
->>>>>>> 35a7c14142a8e3e8c898c99bb4a8ffdb59299344
       alert("Error saving category");
     }
   };
@@ -396,11 +372,7 @@ function OrdersManager({ orders, refresh }) {
       try {
         await updateOrderStatusApi(orderId, newStatus);
         refresh();
-<<<<<<< HEAD
       } catch {
-=======
-      } catch (err) {
->>>>>>> 35a7c14142a8e3e8c898c99bb4a8ffdb59299344
         alert("Error updating status");
       }
     }

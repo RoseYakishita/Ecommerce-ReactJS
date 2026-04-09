@@ -2,10 +2,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { ShoppingCart, User, Menu, Search, X } from 'lucide-react';
 import useStore from '../store/useStore';
 import { useState } from 'react';
-<<<<<<< HEAD
 // eslint-disable-next-line no-unused-vars
-=======
->>>>>>> 35a7c14142a8e3e8c898c99bb4a8ffdb59299344
 import { motion, AnimatePresence } from 'framer-motion';
 import MobileMenu from './MobileMenu';
 

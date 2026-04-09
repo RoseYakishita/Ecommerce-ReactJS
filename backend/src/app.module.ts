@@ -15,10 +15,7 @@ import { CartsModule } from './carts/carts.module';
 import { OrdersModule } from './orders/orders.module';
 import { CommonModule } from './common/common.module';
 import { AiModule } from './ai/ai.module';
-<<<<<<< HEAD
 import { PaymentModule } from './payment/payment.module';
-=======
->>>>>>> 35a7c14142a8e3e8c898c99bb4a8ffdb59299344
 
 @Module({
   imports: [
@@ -48,10 +45,7 @@ import { PaymentModule } from './payment/payment.module';
     OrdersModule,
     CommonModule,
     AiModule,
-<<<<<<< HEAD
     PaymentModule,
-=======
->>>>>>> 35a7c14142a8e3e8c898c99bb4a8ffdb59299344
   ],
   controllers: [AppController],
   providers: [

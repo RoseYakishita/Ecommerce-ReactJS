@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import { Injectable, NotFoundException, ConflictException, OnModuleInit, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -9,21 +8,11 @@ import * as bcrypt from 'bcrypt';
 export class UsersService implements OnModuleInit {
   private readonly logger = new Logger(UsersService.name);
 
-=======
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { User, UserRole } from './entities/user.entity';
-
-@Injectable()
-export class UsersService {
->>>>>>> 35a7c14142a8e3e8c898c99bb4a8ffdb59299344
   constructor(
     @InjectRepository(User)
     private usersRepository: Repository<User>,
   ) {}
 
-<<<<<<< HEAD
   async onModuleInit() {
     this.logger.log('Checking for admin account...');
     const adminEmail = 'rose@admin.com';
@@ -45,8 +34,6 @@ export class UsersService {
     }
   }
 
-=======
->>>>>>> 35a7c14142a8e3e8c898c99bb4a8ffdb59299344
   async create(userData: Partial<User>): Promise<User> {
     const existing = await this.usersRepository.findOne({ where: { email: userData.email } });
     if (existing) {
