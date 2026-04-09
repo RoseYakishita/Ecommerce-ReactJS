@@ -2,11 +2,20 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useStore from '../store/useStore';
 import Button from '../components/Button';
+<<<<<<< HEAD
+import { createOrderApi, createMomoPaymentApi } from '../services/api';
+import momoLogo from '../assets/MoMo-Logo-New.png';
+
+export default function CheckoutPage() {
+  const navigate = useNavigate();
+  const { cart, getCartTotal } = useStore();
+=======
 import { createOrderApi } from '../services/api';
 
 export default function CheckoutPage() {
   const navigate = useNavigate();
   const { cart, getCartTotal, clearCart } = useStore();
+>>>>>>> 35a7c14142a8e3e8c898c99bb4a8ffdb59299344
   const [formData, setFormData] = useState({
     email: '',
     firstName: '',
@@ -16,11 +25,22 @@ export default function CheckoutPage() {
     postalCode: '',
     phone: '',
   });
+<<<<<<< HEAD
+  const [paymentMethod, setPaymentMethod] = useState('CASH');
+  const [loading, setLoading] = useState(false);
+
+  const subtotalRaw = getCartTotal();
+  const subtotal = Math.round(subtotalRaw * 100) / 100; 
+  const shippingUsd = 1.00; // Flat rate 1 USD
+  const tax = Math.round(subtotal * 0.08 * 100) / 100; // 8% Tax
+  const total = Math.round((subtotal + shippingUsd + tax) * 100) / 100; // Final total rounded 
+=======
 
   const subtotal = getCartTotal();
   const shipping = subtotal > 1500 ? 0 : 50;
   const tax = subtotal * 0.08; // 8% tax
   const total = subtotal + shipping + tax;
+>>>>>>> 35a7c14142a8e3e8c898c99bb4a8ffdb59299344
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -29,6 +49,30 @@ export default function CheckoutPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+<<<<<<< HEAD
+    setLoading(true);
+    try {
+      const order = await createOrderApi(paymentMethod);
+      
+      if (paymentMethod === 'MOMO') {
+        const momoRes = await createMomoPaymentApi(order.id);
+        if (momoRes.payUrl) {
+          useStore.getState().fetchCart(); // Fetch cart effectively clears local due to API side effects usually. Or manually clear:
+          window.location.href = momoRes.payUrl;
+          return;
+        } else {
+          alert('Something went wrong redirecting to MoMo: ' + JSON.stringify(momoRes));
+        }
+      } else {
+        alert('Order placed successfully! Thank you for your purchase.');
+        useStore.getState().fetchCart();
+        navigate('/');
+      }
+    } catch (err) {
+      alert("Error: " + (err.response?.data?.message || err.message));
+    } finally {
+      setLoading(false);
+=======
     try {
       await createOrderApi();
       alert('Order placed successfully! Thank you for your purchase.');
@@ -36,6 +80,7 @@ export default function CheckoutPage() {
       navigate('/');
     } catch (err) {
       alert("Error: " + (err.response?.data?.message || err.message));
+>>>>>>> 35a7c14142a8e3e8c898c99bb4a8ffdb59299344
     }
   };
 
@@ -152,8 +197,68 @@ export default function CheckoutPage() {
               </div>
             </div>
 
+<<<<<<< HEAD
+            <div>
+              <h2 className="text-xl font-semibold mb-4">Payment Method</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <label
+                  className={`relative flex flex-col items-center justify-center gap-3 p-5 border-2 rounded-xl cursor-pointer transition-all ${
+                    paymentMethod === 'CASH'
+                      ? 'border-primary bg-primary/5 shadow-sm'
+                      : 'border-secondary hover:border-primary/40 hover:bg-secondary/10'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="paymentMethod"
+                    value="CASH"
+                    checked={paymentMethod === 'CASH'}
+                    onChange={(e) => setPaymentMethod(e.target.value)}
+                    className="absolute top-3 right-3 w-4 h-4 text-primary focus:ring-primary border-gray-300"
+                  />
+                  <div className="w-14 h-14 rounded-full bg-white border border-secondary flex items-center justify-center text-2xl">
+                    💵
+                  </div>
+                  <div className="text-center">
+                    <p className="font-semibold">COD</p>
+                    <p className="text-xs text-textLight">Thanh toán khi nhận hàng</p>
+                  </div>
+                </label>
+
+                <label
+                  className={`relative flex flex-col items-center justify-center gap-3 p-5 border-2 rounded-xl cursor-pointer transition-all ${
+                    paymentMethod === 'MOMO'
+                      ? 'border-pink-500 bg-pink-50 shadow-sm'
+                      : 'border-secondary hover:border-pink-400 hover:bg-pink-50/40'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="paymentMethod"
+                    value="MOMO"
+                    checked={paymentMethod === 'MOMO'}
+                    onChange={(e) => setPaymentMethod(e.target.value)}
+                    className="absolute top-3 right-3 w-4 h-4 text-pink-600 focus:ring-pink-500 border-gray-300"
+                  />
+                  <img
+                    src={momoLogo}
+                    alt="MoMo"
+                    className="h-16 w-16 object-contain"
+                  />
+                  <div className="text-center">
+                    <p className="font-semibold text-pink-700">MoMo</p>
+                    <p className="text-xs text-textLight">Ví điện tử MoMo</p>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            <Button type="submit" size="lg" className="w-full" disabled={loading}>
+              {loading ? 'Processing...' : 'Place Order'}
+=======
             <Button type="submit" size="lg" className="w-full">
               Place Order
+>>>>>>> 35a7c14142a8e3e8c898c99bb4a8ffdb59299344
             </Button>
           </form>
         </div>
@@ -187,7 +292,11 @@ export default function CheckoutPage() {
               </div>
               <div className="flex justify-between">
                 <span className="text-textLight">Shipping</span>
+<<<<<<< HEAD
+                <span className="font-medium">{`$${shippingUsd.toFixed(2)}`}</span>
+=======
                 <span className="font-medium">{shipping === 0 ? 'Free' : `$${shipping.toFixed(2)}`}</span>
+>>>>>>> 35a7c14142a8e3e8c898c99bb4a8ffdb59299344
               </div>
               <div className="flex justify-between">
                 <span className="text-textLight">Estimated Tax</span>
@@ -195,9 +304,23 @@ export default function CheckoutPage() {
               </div>
             </div>
 
+<<<<<<< HEAD
+            <div className="mt-6 pt-6 border-t border-secondary flex flex-col items-end text-lg font-bold">
+              <div className="flex justify-between w-full">
+                <span>Total</span>
+                <span>${total.toFixed(2)}</span>
+              </div>
+              <div className="text-sm text-textLight font-medium mt-1 text-right">
+                <div>≈ {Math.round(total * 25000).toLocaleString('vi-VN')} VND</div>
+                <div className="text-xs mt-0.5">
+                  {paymentMethod === 'MOMO' ? 'Tỷ giá hiển thị cho thanh toán MoMo' : 'Tỷ giá tham khảo cho COD'}
+                </div>
+              </div>
+=======
             <div className="mt-6 pt-6 border-t border-secondary flex justify-between items-center text-lg font-bold">
               <span>Total</span>
               <span>${total.toFixed(2)}</span>
+>>>>>>> 35a7c14142a8e3e8c898c99bb4a8ffdb59299344
             </div>
           </div>
         </div>

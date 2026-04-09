@@ -1,3 +1,15 @@
+<<<<<<< HEAD
+import { Injectable, NotFoundException, ConflictException, OnModuleInit, Logger } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { User, UserRole } from './entities/user.entity';
+import * as bcrypt from 'bcrypt';
+
+@Injectable()
+export class UsersService implements OnModuleInit {
+  private readonly logger = new Logger(UsersService.name);
+
+=======
 import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -5,11 +17,36 @@ import { User, UserRole } from './entities/user.entity';
 
 @Injectable()
 export class UsersService {
+>>>>>>> 35a7c14142a8e3e8c898c99bb4a8ffdb59299344
   constructor(
     @InjectRepository(User)
     private usersRepository: Repository<User>,
   ) {}
 
+<<<<<<< HEAD
+  async onModuleInit() {
+    this.logger.log('Checking for admin account...');
+    const adminEmail = 'rose@admin.com';
+    const existingAdmin = await this.usersRepository.findOne({ where: { email: adminEmail } });
+
+    if (!existingAdmin) {
+      this.logger.log(`Admin account not found. Creating admin: ${adminEmail}`);
+      const hashedPassword = await bcrypt.hash('33213456', 10);
+      const admin = this.usersRepository.create({
+        email: adminEmail,
+        password: hashedPassword,
+        name: 'Admin',
+        role: UserRole.ADMIN,
+      });
+      await this.usersRepository.save(admin);
+      this.logger.log('Admin account created successfully.');
+    } else {
+      this.logger.log('Admin account already exists.');
+    }
+  }
+
+=======
+>>>>>>> 35a7c14142a8e3e8c898c99bb4a8ffdb59299344
   async create(userData: Partial<User>): Promise<User> {
     const existing = await this.usersRepository.findOne({ where: { email: userData.email } });
     if (existing) {

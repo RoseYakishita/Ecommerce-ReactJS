@@ -17,10 +17,21 @@ export class OrdersController {
 
   @Post()
   @ApiOperation({ summary: 'Create order from current user cart' })
+<<<<<<< HEAD
+  create(
+    @CurrentUser() user: any, 
+    @Body('paymentMethod') paymentMethod?: string
+  ) {
+    return this.ordersService.createFromCart(user.userId, paymentMethod);
+  }
+
+
+=======
   create(@CurrentUser() user: any) {
     return this.ordersService.createFromCart(user.userId);
   }
 
+>>>>>>> 35a7c14142a8e3e8c898c99bb4a8ffdb59299344
   @Get('my-orders')
   @ApiOperation({ summary: 'Get current user orders' })
   getMyOrders(@CurrentUser() user: any) {
