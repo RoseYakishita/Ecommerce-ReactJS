@@ -1,5 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
+<<<<<<< HEAD
 // eslint-disable-next-line no-unused-vars
+=======
+>>>>>>> 35a7c14142a8e3e8c898c99bb4a8ffdb59299344
 import { motion, AnimatePresence } from 'framer-motion';
 import { MessageCircle, X, Send, User, Bot, Loader2 } from 'lucide-react';
 

@@ -2,12 +2,20 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useStore from '../store/useStore';
 import Button from '../components/Button';
+<<<<<<< HEAD
 import { createOrderApi, createMomoPaymentApi } from '../services/api';
 import momoLogo from '../assets/MoMo-Logo-New.png';
 
 export default function CheckoutPage() {
   const navigate = useNavigate();
   const { cart, getCartTotal } = useStore();
+=======
+import { createOrderApi } from '../services/api';
+
+export default function CheckoutPage() {
+  const navigate = useNavigate();
+  const { cart, getCartTotal, clearCart } = useStore();
+>>>>>>> 35a7c14142a8e3e8c898c99bb4a8ffdb59299344
   const [formData, setFormData] = useState({
     email: '',
     firstName: '',
@@ -17,6 +25,7 @@ export default function CheckoutPage() {
     postalCode: '',
     phone: '',
   });
+<<<<<<< HEAD
   const [paymentMethod, setPaymentMethod] = useState('CASH');
   const [loading, setLoading] = useState(false);
 
@@ -25,6 +34,13 @@ export default function CheckoutPage() {
   const shippingUsd = 1.00; // Flat rate 1 USD
   const tax = Math.round(subtotal * 0.08 * 100) / 100; // 8% Tax
   const total = Math.round((subtotal + shippingUsd + tax) * 100) / 100; // Final total rounded 
+=======
+
+  const subtotal = getCartTotal();
+  const shipping = subtotal > 1500 ? 0 : 50;
+  const tax = subtotal * 0.08; // 8% tax
+  const total = subtotal + shipping + tax;
+>>>>>>> 35a7c14142a8e3e8c898c99bb4a8ffdb59299344
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -33,6 +49,7 @@ export default function CheckoutPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+<<<<<<< HEAD
     setLoading(true);
     try {
       const order = await createOrderApi(paymentMethod);
@@ -55,6 +72,15 @@ export default function CheckoutPage() {
       alert("Error: " + (err.response?.data?.message || err.message));
     } finally {
       setLoading(false);
+=======
+    try {
+      await createOrderApi();
+      alert('Order placed successfully! Thank you for your purchase.');
+      useStore.getState().fetchCart();
+      navigate('/');
+    } catch (err) {
+      alert("Error: " + (err.response?.data?.message || err.message));
+>>>>>>> 35a7c14142a8e3e8c898c99bb4a8ffdb59299344
     }
   };
 
@@ -171,6 +197,7 @@ export default function CheckoutPage() {
               </div>
             </div>
 
+<<<<<<< HEAD
             <div>
               <h2 className="text-xl font-semibold mb-4">Payment Method</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -228,6 +255,10 @@ export default function CheckoutPage() {
 
             <Button type="submit" size="lg" className="w-full" disabled={loading}>
               {loading ? 'Processing...' : 'Place Order'}
+=======
+            <Button type="submit" size="lg" className="w-full">
+              Place Order
+>>>>>>> 35a7c14142a8e3e8c898c99bb4a8ffdb59299344
             </Button>
           </form>
         </div>
@@ -261,7 +292,11 @@ export default function CheckoutPage() {
               </div>
               <div className="flex justify-between">
                 <span className="text-textLight">Shipping</span>
+<<<<<<< HEAD
                 <span className="font-medium">{`$${shippingUsd.toFixed(2)}`}</span>
+=======
+                <span className="font-medium">{shipping === 0 ? 'Free' : `$${shipping.toFixed(2)}`}</span>
+>>>>>>> 35a7c14142a8e3e8c898c99bb4a8ffdb59299344
               </div>
               <div className="flex justify-between">
                 <span className="text-textLight">Estimated Tax</span>
@@ -269,6 +304,7 @@ export default function CheckoutPage() {
               </div>
             </div>
 
+<<<<<<< HEAD
             <div className="mt-6 pt-6 border-t border-secondary flex flex-col items-end text-lg font-bold">
               <div className="flex justify-between w-full">
                 <span>Total</span>
@@ -280,6 +316,11 @@ export default function CheckoutPage() {
                   {paymentMethod === 'MOMO' ? 'Tỷ giá hiển thị cho thanh toán MoMo' : 'Tỷ giá tham khảo cho COD'}
                 </div>
               </div>
+=======
+            <div className="mt-6 pt-6 border-t border-secondary flex justify-between items-center text-lg font-bold">
+              <span>Total</span>
+              <span>${total.toFixed(2)}</span>
+>>>>>>> 35a7c14142a8e3e8c898c99bb4a8ffdb59299344
             </div>
           </div>
         </div>

@@ -1,7 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react';
+<<<<<<< HEAD
 // eslint-disable-next-line no-unused-vars
+=======
+>>>>>>> 35a7c14142a8e3e8c898c99bb4a8ffdb59299344
 import { motion, AnimatePresence } from 'framer-motion';
 import { getProducts, getCategories } from '../services/api';
 import ProductCard from '../components/ProductCard';
@@ -11,6 +14,10 @@ export default function HomePage() {
   const [featuredProducts, setFeaturedProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
+<<<<<<< HEAD
+=======
+  const [scrollIndex, setScrollIndex] = useState(0);
+>>>>>>> 35a7c14142a8e3e8c898c99bb4a8ffdb59299344
   const sliderRef = useRef(null);
 
   useEffect(() => {

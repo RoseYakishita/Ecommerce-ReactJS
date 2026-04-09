@@ -70,6 +70,7 @@ export const removeCartItemApi = async (cartItemId) => {
 };
 
 // --- Order Endpoints ---
+<<<<<<< HEAD
 export const createOrderApi = async (paymentMethod = 'CASH') => {
   const response = await api.post('/orders', { paymentMethod });
   return response.data;
@@ -77,6 +78,10 @@ export const createOrderApi = async (paymentMethod = 'CASH') => {
 
 export const createMomoPaymentApi = async (orderId) => {
   const response = await api.post('/payment/momo/create', { orderId });
+=======
+export const createOrderApi = async () => {
+  const response = await api.post('/orders');
+>>>>>>> 35a7c14142a8e3e8c898c99bb4a8ffdb59299344
   return response.data;
 };
 

@@ -1,14 +1,24 @@
+<<<<<<< HEAD
 import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Order, OrderStatus, PaymentMethod } from './entities/order.entity';
+=======
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Order, OrderStatus } from './entities/order.entity';
+>>>>>>> 35a7c14142a8e3e8c898c99bb4a8ffdb59299344
 import { OrderItem } from './entities/order-item.entity';
 import { CartsService } from '../carts/carts.service';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 
 @Injectable()
 export class OrdersService {
+<<<<<<< HEAD
   private readonly logger = new Logger(OrdersService.name);
+=======
+>>>>>>> 35a7c14142a8e3e8c898c99bb4a8ffdb59299344
   constructor(
     @InjectRepository(Order)
     private ordersRepository: Repository<Order>,
@@ -17,13 +27,18 @@ export class OrdersService {
     private cartsService: CartsService,
   ) {}
 
+<<<<<<< HEAD
   async createFromCart(userId: number, paymentMethodStr?: string) {
+=======
+  async createFromCart(userId: number) {
+>>>>>>> 35a7c14142a8e3e8c898c99bb4a8ffdb59299344
     const cart = await this.cartsService.getCart(userId);
     
     if (!cart.items || cart.items.length === 0) {
       throw new BadRequestException('Cannot create order from an empty cart');
     }
 
+<<<<<<< HEAD
     let itemsTotal = 0;
     
     // Calculate items subtotal and prepare items data
@@ -31,6 +46,15 @@ export class OrdersService {
       const priceAtPurchase = Number(cartItem.product.price);
       const quantity = Number(cartItem.quantity);
       itemsTotal += (priceAtPurchase * quantity);
+=======
+    let totalAmount = 0;
+    
+    // Calculate total and prepare items
+    const orderItemsData = cart.items.map(cartItem => {
+      const priceAtPurchase = cartItem.product.price;
+      const quantity = cartItem.quantity;
+      totalAmount += (priceAtPurchase * quantity);
+>>>>>>> 35a7c14142a8e3e8c898c99bb4a8ffdb59299344
       
       return {
         productId: cartItem.productId,
@@ -39,6 +63,7 @@ export class OrdersService {
       };
     });
 
+<<<<<<< HEAD
     // Explicit costs calculation
     const subtotal = Math.round(itemsTotal * 100) / 100;
     const shippingUsd = 1.00; // Flat rate 1 USD
@@ -61,6 +86,13 @@ export class OrdersService {
       totalAmount: finalTotal,
       status: OrderStatus.PENDING,
       paymentMethod: method,
+=======
+    // Create Order
+    const order = this.ordersRepository.create({
+      userId,
+      totalAmount,
+      status: OrderStatus.PENDING,
+>>>>>>> 35a7c14142a8e3e8c898c99bb4a8ffdb59299344
     });
     const savedOrder = await this.ordersRepository.save(order);
 
