@@ -24,11 +24,7 @@ const useStore = create(
             id: item.id, // CartItem ID
             productId: item.product.id,
             name: item.product.name,
-<<<<<<< HEAD
             price: Number(item.product.price),
-=======
-            price: item.product.price,
->>>>>>> 35a7c14142a8e3e8c898c99bb4a8ffdb59299344
             image: item.product.images?.[0] || item.product.image || 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&q=80&w=800',
             quantity: item.quantity
           }));

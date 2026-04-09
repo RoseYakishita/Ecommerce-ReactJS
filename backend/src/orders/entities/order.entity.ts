@@ -8,14 +8,11 @@ export enum OrderStatus {
   SHIPPED = 'SHIPPED',
 }
 
-<<<<<<< HEAD
 export enum PaymentMethod {
   CASH = 'CASH',
   MOMO = 'MOMO',
 }
 
-=======
->>>>>>> 35a7c14142a8e3e8c898c99bb4a8ffdb59299344
 @Entity('orders')
 export class Order {
   @PrimaryGeneratedColumn()
@@ -34,12 +31,9 @@ export class Order {
   @Column({ type: 'enum', enum: OrderStatus, default: OrderStatus.PENDING })
   status: OrderStatus;
 
-<<<<<<< HEAD
   @Column({ type: 'enum', enum: PaymentMethod, default: PaymentMethod.CASH })
   paymentMethod: PaymentMethod;
 
-=======
->>>>>>> 35a7c14142a8e3e8c898c99bb4a8ffdb59299344
   @OneToMany(() => OrderItem, orderItem => orderItem.order, { cascade: true })
   items: OrderItem[];
 

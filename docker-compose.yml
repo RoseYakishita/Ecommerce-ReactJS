@@ -45,11 +45,7 @@ services:
       MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root_password}
       MYSQL_DATABASE: ${DB_DATABASE:-ecom_DB}
       MYSQL_USER: ${DB_USERNAME:-rose}
-<<<<<<< HEAD
       MYSQL_PASSWORD: ${DB_PASSWORD:-33213456}
-=======
-      MYSQL_PASSWORD: ${DB_PASSWORD:-33213}
->>>>>>> 35a7c14142a8e3e8c898c99bb4a8ffdb59299344
     volumes:
       - db_data:/var/lib/mysql
     networks:

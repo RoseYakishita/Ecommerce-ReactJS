@@ -1,7 +1,4 @@
-<<<<<<< HEAD
 // eslint-disable-next-line no-unused-vars
-=======
->>>>>>> 35a7c14142a8e3e8c898c99bb4a8ffdb59299344
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { User, X, Globe, Mail, MessageCircle } from 'lucide-react';
