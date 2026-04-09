@@ -32,6 +32,15 @@ export default function PaymentResultPage() {
     verifyPayment();
   }, [searchParams, resultCode]);
 
+  const isSuccess = resultCode == 0;
+
+  useEffect(() => {
+    if (!verifying && isSuccess) {
+      const timer = setTimeout(() => navigate('/'), 2500);
+      return () => clearTimeout(timer);
+    }
+  }, [verifying, isSuccess, navigate]);
+
   if (verifying) {
     return (
       <div className="container mx-auto px-4 py-20 text-center">
@@ -40,8 +49,6 @@ export default function PaymentResultPage() {
       </div>
     );
   }
-
-  const isSuccess = resultCode == 0;
 
   return (
     <div className="container mx-auto px-4 py-16 text-center max-w-lg">
@@ -65,7 +72,7 @@ export default function PaymentResultPage() {
         
         <p className="text-textLight mb-8">
           {isSuccess 
-            ? "Your order has been paid and is now being processed. Thank you for shopping with us!" 
+            ? "Your order has been paid and is now being processed. Thank you for shopping with us! Tự động quay về trang chủ sau 2.5 giây..." 
             : `Transaction could not be completed. Reason: ${message || 'Unknown error'}`}
         </p>
 
