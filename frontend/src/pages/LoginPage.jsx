@@ -30,6 +30,7 @@ export default function LoginPage() {
         const data = await registerApi({ name: formData.name, email: formData.email, password: formData.password });
         login(data.user, data.access_token);
         useStore.getState().fetchCart();
+        alert('Registration successful! Welcome to our store 🎉');
         navigate('/');
       }
     } catch (err) {
