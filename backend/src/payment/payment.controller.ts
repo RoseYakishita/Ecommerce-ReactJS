@@ -1,7 +1,8 @@
-import { Controller, Post, Body, Get, Query, UseGuards, ParseIntPipe } from '@nestjs/common';
+import { Controller, Post, Body, Get, Query, UseGuards } from '@nestjs/common';
 import { PaymentService } from './payment.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
 
 @ApiTags('payment')
 @Controller('payment')
@@ -11,9 +12,9 @@ export class PaymentController {
   @Post('momo/create')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
-  @ApiOperation({ summary: 'Create MoMo payment URL' })
-  async createMomoPayment(@Body('orderId', ParseIntPipe) orderId: number) {
-    return this.paymentService.createMomoPayment(orderId);
+  @ApiOperation({ summary: 'Create MoMo payment URL from current user cart (order is created after successful callback)' })
+  async createMomoPayment(@CurrentUser() user: any) {
+    return this.paymentService.createMomoPayment(user.userId);
   }
 
   @Get('momo/callback')
