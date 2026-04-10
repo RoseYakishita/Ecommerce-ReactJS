@@ -21,6 +21,8 @@ export default function PaymentResultPage() {
       try {
         if (resultCode == 0) {
           await api.get(`/payment/momo/callback?${searchParams.toString()}`);
+          // New flow: order is created after successful callback, so refresh cart now.
+          await useStore.getState().fetchCart();
         }
       } catch (err) {
         console.error("Verification error:", err);

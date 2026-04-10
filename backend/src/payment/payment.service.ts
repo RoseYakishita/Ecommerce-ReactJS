@@ -2,7 +2,8 @@ import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as crypto from 'crypto';
 import { OrdersService } from '../orders/orders.service';
-import { OrderStatus } from '../orders/entities/order.entity';
+import { OrderStatus, PaymentMethod } from '../orders/entities/order.entity';
+import { CartsService } from '../carts/carts.service';
 
 @Injectable()
 export class PaymentService {
@@ -11,6 +12,7 @@ export class PaymentService {
   constructor(
     private readonly configService: ConfigService,
     private readonly ordersService: OrdersService,
+    private readonly cartsService: CartsService,
   ) {}
 
   private normalizeBaseUrl(raw: string | undefined, fallback: string): string {
@@ -27,9 +29,30 @@ export class PaymentService {
     return value;
   }
 
-  async createMomoPayment(orderId: number) {
-    const order = await this.ordersService.findOne(orderId);
-    if (!order) throw new BadRequestException('Order not found');
+  private calcCartTotals(cart: any) {
+    let itemsTotal = 0;
+
+    for (const cartItem of cart.items || []) {
+      const priceAtPurchase = Number(cartItem?.product?.price || 0);
+      const quantity = Number(cartItem?.quantity || 0);
+      itemsTotal += priceAtPurchase * quantity;
+    }
+
+    const subtotal = Math.round(itemsTotal * 100) / 100;
+    const shippingUsd = 1.0;
+    const taxAmount = Math.round(subtotal * 0.08 * 100) / 100;
+    const finalTotalUsd = Math.round((subtotal + shippingUsd + taxAmount) * 100) / 100;
+
+    return { subtotal, shippingUsd, taxAmount, finalTotalUsd };
+  }
+
+  async createMomoPayment(userId: number) {
+    const cart = await this.cartsService.getCart(userId);
+    if (!cart.items || cart.items.length === 0) {
+      throw new BadRequestException('Cannot create MoMo payment from an empty cart');
+    }
+
+    const { finalTotalUsd } = this.calcCartTotals(cart);
 
     const partnerCode = this.getRequiredConfig('MOMO_PARTNER_CODE');
     const accessKey = this.getRequiredConfig('MOMO_ACCESS_KEY');
@@ -49,14 +72,19 @@ export class PaymentService {
     const ipnUrl = `${backendPublicBaseUrl}/api/payment/momo/webhook`;
     const requestType = 'captureWallet';
 
-    // Project stores order.totalAmount in USD currently -> convert to VND for MoMo.
     const exchangeRate = Number(this.configService.get<string>('MOMO_EXCHANGE_RATE') || 25000);
-    const amount = String(Math.max(0, Math.round(Number(order.totalAmount) * exchangeRate)));
+    const amount = String(Math.max(0, Math.round(Number(finalTotalUsd) * exchangeRate)));
 
     const requestId = `${partnerCode}_${Date.now()}`;
-    const momoOrderId = `${order.id}_${Date.now()}`;
-    const orderInfo = `Thanh toan don hang #${order.id}`;
-    const extraData = Buffer.from(JSON.stringify({ orderId: order.id }), 'utf8').toString('base64');
+    const momoOrderId = `U${userId}_${Date.now()}`;
+    const orderInfo = `Thanh toan gio hang user #${userId}`;
+    const extraData = Buffer.from(
+      JSON.stringify({
+        userId,
+        flow: 'CREATE_ORDER_AFTER_PAID',
+      }),
+      'utf8',
+    ).toString('base64');
 
     const rawSignature =
       `accessKey=${accessKey}` +
@@ -89,7 +117,7 @@ export class PaymentService {
       signature,
     };
 
-    this.logger.log(`[MoMo] Create payment for order #${order.id}, amount ${amount} VND`);
+    this.logger.log(`[MoMo] Create payment for user #${userId}, amount ${amount} VND`);
 
     const response = await fetch(endpoint, {
       method: 'POST',
@@ -107,26 +135,33 @@ export class PaymentService {
     return result;
   }
 
-  private decodeOrderIdFromCallback(orderIdRaw: string, extraDataRaw: string): number {
+  private decodeCallbackContext(orderIdRaw: string, extraDataRaw: string): { orderId?: number; userId?: number } {
     if (extraDataRaw) {
       try {
         const decoded = Buffer.from(extraDataRaw, 'base64').toString('utf8');
         const parsed = JSON.parse(decoded);
-        if (parsed?.orderId) {
-          const id = Number(parsed.orderId);
-          if (!Number.isNaN(id)) return id;
+
+        const userId = Number(parsed?.userId);
+        if (!Number.isNaN(userId) && userId > 0) {
+          return { userId };
+        }
+
+        const orderIdFromExtra = Number(parsed?.orderId);
+        if (!Number.isNaN(orderIdFromExtra) && orderIdFromExtra > 0) {
+          return { orderId: orderIdFromExtra };
         }
       } catch {
         // fallback below
       }
     }
 
-    const idPart = (orderIdRaw || '').split('_')[0];
+    const idPart = (orderIdRaw || '').split('_')[0].replace(/^U/i, '');
     const id = Number(idPart);
-    if (Number.isNaN(id)) {
-      throw new BadRequestException('Invalid callback orderId');
+    if (Number.isNaN(id) || id <= 0) {
+      throw new BadRequestException('Invalid callback orderId/extraData');
     }
-    return id;
+
+    return { orderId: id };
   }
 
   async handleMomoCallback(params: any) {
@@ -175,18 +210,44 @@ export class PaymentService {
       throw new BadRequestException('Invalid signature');
     }
 
-    const actualOrderId = this.decodeOrderIdFromCallback(orderId, extraData);
+    const callbackCtx = this.decodeCallbackContext(orderId, extraData);
 
     if (Number(resultCode) === 0) {
-      const order = await this.ordersService.findOne(actualOrderId);
-      if (order.status !== OrderStatus.PAID) {
-        await this.ordersService.updateStatus(actualOrderId, { status: OrderStatus.PAID });
-        this.logger.log(`[MoMo] Order #${actualOrderId} marked as PAID`);
-      } else {
-        this.logger.log(`[MoMo] Order #${actualOrderId} already PAID (idempotent callback)`);
+      // New flow: create order only after successful payment
+      if (callbackCtx.userId) {
+        const userId = callbackCtx.userId;
+        const cart = await this.cartsService.getCart(userId);
+
+        // Idempotent handling: callback may be retried by MoMo.
+        if (!cart.items || cart.items.length === 0) {
+          this.logger.log(`[MoMo] Callback for user #${userId} already processed (cart empty)`);
+          return { status: 200, message: 'Already processed' };
+        }
+
+        const createdOrder = await this.ordersService.createFromCart(userId, PaymentMethod.MOMO);
+        if (createdOrder.status !== OrderStatus.PAID) {
+          await this.ordersService.updateStatus(createdOrder.id, { status: OrderStatus.PAID });
+        }
+
+        this.logger.log(`[MoMo] Created order #${createdOrder.id} and marked as PAID for user #${userId}`);
+        return { status: 200, message: 'Received callback safely' };
+      }
+
+      // Backward compatible flow: old callback with orderId
+      if (callbackCtx.orderId) {
+        const actualOrderId = callbackCtx.orderId;
+        const order = await this.ordersService.findOne(actualOrderId);
+        if (order.status !== OrderStatus.PAID) {
+          await this.ordersService.updateStatus(actualOrderId, { status: OrderStatus.PAID });
+          this.logger.log(`[MoMo] Order #${actualOrderId} marked as PAID`);
+        } else {
+          this.logger.log(`[MoMo] Order #${actualOrderId} already PAID (idempotent callback)`);
+        }
       }
     } else {
-      this.logger.warn(`[MoMo] Payment failed for order #${actualOrderId}, resultCode=${resultCode}`);
+      this.logger.warn(
+        `[MoMo] Payment failed, orderId=${orderId || 'N/A'}, userId=${callbackCtx.userId || 'N/A'}, resultCode=${resultCode}`,
+      );
     }
 
     return { status: 200, message: 'Received callback safely' };

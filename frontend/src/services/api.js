@@ -75,8 +75,8 @@ export const createOrderApi = async (paymentMethod = 'CASH') => {
   return response.data;
 };
 
-export const createMomoPaymentApi = async (orderId) => {
-  const response = await api.post('/payment/momo/create', { orderId });
+export const createMomoPaymentApi = async () => {
+  const response = await api.post('/payment/momo/create');
   return response.data;
 };
 

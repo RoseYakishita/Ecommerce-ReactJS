@@ -35,18 +35,19 @@ export default function CheckoutPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      const order = await createOrderApi(paymentMethod);
-      
       if (paymentMethod === 'MOMO') {
-        const momoRes = await createMomoPaymentApi(order.id);
+        // New flow: do NOT create order now. Create payment from cart,
+        // then backend creates order only after successful callback.
+        const momoRes = await createMomoPaymentApi();
         if (momoRes.payUrl) {
-          useStore.getState().fetchCart(); // Fetch cart effectively clears local due to API side effects usually. Or manually clear:
           window.location.href = momoRes.payUrl;
           return;
         } else {
           alert('Something went wrong redirecting to MoMo: ' + JSON.stringify(momoRes));
         }
       } else {
+        // COD flow remains unchanged: create order immediately
+        await createOrderApi(paymentMethod);
         alert('Order placed successfully! Thank you for your purchase.');
         useStore.getState().fetchCart();
         navigate('/');
