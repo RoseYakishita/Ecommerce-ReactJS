@@ -3,11 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import useStore from '../store/useStore';
 import Button from '../components/Button';
 import { createOrderApi, createMomoPaymentApi } from '../services/api';
+import { useToast } from '../components/ToastProvider';
+import ImageWithFallback from '../components/ImageWithFallback';
 import momoLogo from '../assets/MoMo-Logo-New.png';
 
 export default function CheckoutPage() {
   const navigate = useNavigate();
   const { cart, getCartTotal } = useStore();
+  const { showToast } = useToast();
   const [formData, setFormData] = useState({
     email: '',
     firstName: '',
@@ -19,12 +22,15 @@ export default function CheckoutPage() {
   });
   const [paymentMethod, setPaymentMethod] = useState('CASH');
   const [loading, setLoading] = useState(false);
+  const [couponCode, setCouponCode] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState('');
 
   const subtotalRaw = getCartTotal();
   const subtotal = Math.round(subtotalRaw * 100) / 100; 
   const shippingUsd = 1.00; // Flat rate 1 USD
   const tax = Math.round(subtotal * 0.08 * 100) / 100; // 8% Tax
-  const total = Math.round((subtotal + shippingUsd + tax) * 100) / 100; // Final total rounded 
+  const discount = appliedCoupon === 'SAVE10' ? Math.round(subtotal * 0.10 * 100) / 100 : 0;
+  const total = Math.max(0, Math.round((subtotal + shippingUsd + tax - discount) * 100) / 100); // Final total rounded 
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -43,17 +49,17 @@ export default function CheckoutPage() {
           window.location.href = momoRes.payUrl;
           return;
         } else {
-          alert('Something went wrong redirecting to MoMo: ' + JSON.stringify(momoRes));
+          showToast('Something went wrong redirecting to MoMo.', 'error');
         }
       } else {
         // COD flow remains unchanged: create order immediately
         await createOrderApi(paymentMethod);
-        alert('Order placed successfully! Thank you for your purchase.');
+        showToast('Order placed successfully! Thank you for your purchase.', 'success');
         useStore.getState().fetchCart();
         navigate('/');
       }
     } catch (err) {
-      alert("Error: " + (err.response?.data?.message || err.message));
+      showToast(`Error: ${err.userMessage || err.message}`, 'error');
     } finally {
       setLoading(false);
     }
@@ -214,7 +220,7 @@ export default function CheckoutPage() {
                     onChange={(e) => setPaymentMethod(e.target.value)}
                     className="absolute top-3 right-3 w-4 h-4 text-pink-600 focus:ring-pink-500 border-gray-300"
                   />
-                  <img
+                  <ImageWithFallback
                     src={momoLogo}
                     alt="MoMo"
                     className="h-16 w-16 object-contain"
@@ -242,7 +248,7 @@ export default function CheckoutPage() {
               {cart.map((item) => (
                 <div key={item.id} className="py-4 flex gap-4">
                   <div className="w-16 h-16 bg-white rounded-md overflow-hidden shrink-0 border border-secondary">
-                    <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                    <ImageWithFallback src={item.image} alt={item.name} className="w-full h-full object-cover" />
                   </div>
                   <div className="flex-1">
                     <h3 className="text-sm font-medium text-textMain">{item.name}</h3>
@@ -255,18 +261,54 @@ export default function CheckoutPage() {
               ))}
             </div>
 
-            <div className="space-y-3 pt-6 border-t border-secondary text-sm">
-              <div className="flex justify-between">
-                <span className="text-textLight">Subtotal</span>
-                <span className="font-medium">${subtotal.toFixed(2)}</span>
+            <div className="pt-6 border-t border-secondary text-sm">
+              <div className="mb-4">
+                <label className="block text-xs font-semibold text-textLight uppercase tracking-wider mb-2">Coupon</label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={couponCode}
+                    onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                    placeholder="Try SAVE10"
+                    className="flex-1 border border-secondary rounded px-3 py-2 focus:outline-none focus:ring-1 focus:ring-primary"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (couponCode.trim() === 'SAVE10') {
+                        setAppliedCoupon('SAVE10');
+                        showToast('Coupon SAVE10 applied (10% off subtotal)', 'success');
+                      } else {
+                        setAppliedCoupon('');
+                        showToast('Invalid coupon code', 'error');
+                      }
+                    }}
+                    className="px-3 py-2 border border-primary text-primary rounded hover:bg-primary hover:text-white transition-colors"
+                  >
+                    Apply
+                  </button>
+                </div>
               </div>
-              <div className="flex justify-between">
-                <span className="text-textLight">Shipping</span>
-                <span className="font-medium">{`$${shippingUsd.toFixed(2)}`}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-textLight">Estimated Tax</span>
-                <span className="font-medium">${tax.toFixed(2)}</span>
+
+              <div className="space-y-3">
+                <div className="flex justify-between">
+                  <span className="text-textLight">Subtotal</span>
+                  <span className="font-medium">${subtotal.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-textLight">Shipping</span>
+                  <span className="font-medium">{`$${shippingUsd.toFixed(2)}`}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-textLight">Estimated Tax</span>
+                  <span className="font-medium">${tax.toFixed(2)}</span>
+                </div>
+                {discount > 0 && (
+                  <div className="flex justify-between text-green-700">
+                    <span>Discount ({appliedCoupon})</span>
+                    <span>- ${discount.toFixed(2)}</span>
+                  </div>
+                )}
               </div>
             </div>
 

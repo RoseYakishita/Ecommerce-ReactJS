@@ -16,12 +16,14 @@ import { OrdersModule } from './orders/orders.module';
 import { CommonModule } from './common/common.module';
 import { AiModule } from './ai/ai.module';
 import { PaymentModule } from './payment/payment.module';
+import { ContactModule } from './contact/contact.module';
+import { WishlistModule } from './wishlist/wishlist.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: '.env',
+      envFilePath: [`.env.${process.env.NODE_ENV || 'development'}`, '.env'],
     }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
@@ -46,6 +48,8 @@ import { PaymentModule } from './payment/payment.module';
     CommonModule,
     AiModule,
     PaymentModule,
+    ContactModule,
+    WishlistModule,
   ],
   controllers: [AppController],
   providers: [

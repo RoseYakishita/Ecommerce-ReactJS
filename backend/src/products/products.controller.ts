@@ -27,17 +27,20 @@ export class ProductsController {
   @ApiQuery({ name: 'limit', required: false, type: Number })
   @ApiQuery({ name: 'search', required: false, type: String })
   @ApiQuery({ name: 'categoryId', required: false, type: Number })
+  @ApiQuery({ name: 'sort', required: false, enum: ['featured', 'price-asc', 'price-desc', 'newest'] })
   findAll(
     @Query('page') page?: string,
     @Query('limit') limit?: string,
     @Query('search') search?: string,
     @Query('categoryId') categoryId?: string,
+    @Query('sort') sort?: string,
   ) {
     return this.productsService.findAll(
       page ? parseInt(page, 10) : 1,
       limit ? parseInt(limit, 10) : 10,
       search,
-      categoryId ? parseInt(categoryId, 10) : undefined
+      categoryId ? parseInt(categoryId, 10) : undefined,
+      sort,
     );
   }
 

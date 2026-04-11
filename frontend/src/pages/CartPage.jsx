@@ -2,6 +2,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Trash2, Minus, Plus, ArrowRight, ShoppingCart } from 'lucide-react';
 import useStore from '../store/useStore';
 import Button from '../components/Button';
+import ImageWithFallback from '../components/ImageWithFallback';
 
 export default function CartPage() {
   const navigate = useNavigate();
@@ -43,7 +44,7 @@ export default function CartPage() {
               <div key={item.id} className="py-6 flex flex-col md:grid md:grid-cols-12 gap-4 items-center">
                 <div className="col-span-6 flex items-center w-full gap-4">
                   <div className="w-24 h-24 shrink-0 bg-secondary/10 rounded-md overflow-hidden">
-                    <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                    <ImageWithFallback src={item.image} alt={item.name} className="w-full h-full object-cover" />
                   </div>
                   <div>
                     <h3 className="font-semibold text-textMain line-clamp-2">

@@ -10,6 +10,7 @@ import {
   updateOrderStatusApi,
   updateProductApi,
   updateCategoryApi,
+  sendContactMessageApi,
 } from '../services/api';
 import Button from '../components/Button';
 
@@ -58,7 +59,7 @@ export default function AdminDashboard() {
       <div className="w-full md:w-64 bg-white border-r border-secondary p-6 shrink-0">
         <h2 className="text-2xl font-bold mb-8 text-primary font-heading">Admin Panel</h2>
         <nav className="space-y-2">
-          {['products', 'categories', 'orders'].map(tab => (
+          {['products', 'categories', 'orders', 'analytics'].map(tab => (
             <button
               key={tab}
               onClick={() => {
@@ -107,12 +108,291 @@ export default function AdminDashboard() {
             refresh={fetchData} 
           />
         )}
+
+        {activeTab === 'analytics' && (
+          <AnalyticsPanel products={products} orders={orders} />
+        )}
       </div>
     </div>
   );
 }
 
 // --- Sub Components ---
+
+function AnalyticsPanel({ products, orders }) {
+  const [range, setRange] = useState('30d');
+  const [statusFilter, setStatusFilter] = useState('ALL');
+  const [sendingAlert, setSendingAlert] = useState(false);
+
+  const now = new Date();
+  const periodDays = range === '7d' ? 7 : range === '30d' ? 30 : null;
+  const cutoff = periodDays
+    ? new Date(now.getTime() - periodDays * 24 * 60 * 60 * 1000)
+    : null;
+
+  const filteredOrders = orders.filter((o) => {
+    const passDate = !cutoff || new Date(o.createdAt) >= cutoff;
+    const passStatus = statusFilter === 'ALL' || o.status === statusFilter;
+    return passDate && passStatus;
+  });
+
+  const totalRevenue = filteredOrders.reduce((sum, o) => sum + Number(o.totalAmount || 0), 0);
+  const deliveredCount = filteredOrders.filter((o) => o.status === 'DELIVERED').length;
+  const lowStock = products.filter((p) => Number(p.stock) <= 10);
+
+  const previousOrders = periodDays
+    ? orders.filter((o) => {
+        const created = new Date(o.createdAt).getTime();
+        const end = now.getTime() - periodDays * 24 * 60 * 60 * 1000;
+        const start = end - periodDays * 24 * 60 * 60 * 1000;
+        const passStatus = statusFilter === 'ALL' || o.status === statusFilter;
+        return created >= start && created < end && passStatus;
+      })
+    : [];
+
+  const previousRevenue = previousOrders.reduce((sum, o) => sum + Number(o.totalAmount || 0), 0);
+  const previousDelivered = previousOrders.filter((o) => o.status === 'DELIVERED').length;
+
+  const pct = (curr, prev) => {
+    if (!periodDays) return null;
+    if (!prev && !curr) return 0;
+    if (!prev) return 100;
+    return Number((((curr - prev) / prev) * 100).toFixed(1));
+  };
+
+  const revenueDelta = pct(totalRevenue, previousRevenue);
+  const deliveredDelta = pct(deliveredCount, previousDelivered);
+
+  const topProductsMap = new Map();
+  for (const order of filteredOrders) {
+    for (const item of order.items || []) {
+      const key = item.product?.name || `Product #${item.productId}`;
+      topProductsMap.set(key, (topProductsMap.get(key) || 0) + Number(item.quantity || 0));
+    }
+  }
+  const topProducts = [...topProductsMap.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5);
+
+  const revenueByDay = new Map();
+  for (const order of filteredOrders) {
+    const dateKey = new Date(order.createdAt).toISOString().slice(0, 10);
+    revenueByDay.set(dateKey, (revenueByDay.get(dateKey) || 0) + Number(order.totalAmount || 0));
+  }
+  const revenueSeries = [...revenueByDay.entries()]
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .slice(-10);
+
+  const maxRevenue = Math.max(1, ...revenueSeries.map((x) => x[1]));
+
+  const topCustomersMap = new Map();
+  for (const order of filteredOrders) {
+    const key = `User #${order.userId}`;
+    topCustomersMap.set(key, (topCustomersMap.get(key) || 0) + Number(order.totalAmount || 0));
+  }
+  const topCustomers = [...topCustomersMap.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5);
+
+  const sendLowStockAlertEmail = async () => {
+    if (lowStock.length === 0) return;
+
+    setSendingAlert(true);
+    try {
+      const lines = lowStock.slice(0, 20).map((p) => `- ${p.name} (stock: ${p.stock})`).join('\n');
+      await sendContactMessageApi({
+        name: 'Lumina Admin Bot',
+        email: 'system@lumina.local',
+        subject: 'Low Stock Alert Report',
+        message: `Low stock products report:\n\n${lines}`,
+      });
+      alert('Low stock alert email sent successfully.');
+    } catch (err) {
+      alert(`Cannot send alert email: ${err.userMessage || err.message}`);
+    } finally {
+      setSendingAlert(false);
+    }
+  };
+
+  const exportOrdersCsv = () => {
+    const header = ['orderId', 'userId', 'status', 'totalAmount', 'createdAt'];
+    const rows = filteredOrders.map((o) => [o.id, o.userId, o.status, o.totalAmount, o.createdAt]);
+    const csv = [header, ...rows]
+      .map((row) => row.map((v) => `"${String(v ?? '').replace(/"/g, '""')}"`).join(','))
+      .join('\n');
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `orders-export-${range}-${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const exportOrderItemsCsv = () => {
+    const header = ['orderId', 'createdAt', 'userId', 'status', 'productId', 'productName', 'quantity', 'priceAtPurchase', 'lineTotal'];
+    const rows = [];
+
+    for (const order of filteredOrders) {
+      for (const item of order.items || []) {
+        rows.push([
+          order.id,
+          order.createdAt,
+          order.userId,
+          order.status,
+          item.productId,
+          item.product?.name || '',
+          item.quantity,
+          item.priceAtPurchase,
+          Number(item.quantity || 0) * Number(item.priceAtPurchase || 0),
+        ]);
+      }
+    }
+
+    const csv = [header, ...rows]
+      .map((row) => row.map((v) => `"${String(v ?? '').replace(/"/g, '""')}"`).join(','))
+      .join('\n');
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `order-items-export-${range}-${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h3 className="text-2xl font-bold">Analytics</h3>
+        <div className="flex items-center gap-2 flex-wrap">
+          <select
+            value={range}
+            onChange={(e) => setRange(e.target.value)}
+            className="border border-secondary rounded px-3 py-2 text-sm"
+          >
+            <option value="7d">Last 7 days</option>
+            <option value="30d">Last 30 days</option>
+            <option value="all">All time</option>
+          </select>
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="border border-secondary rounded px-3 py-2 text-sm"
+          >
+            <option value="ALL">All statuses</option>
+            <option value="PENDING">PENDING</option>
+            <option value="PAID">PAID</option>
+            <option value="SHIPPED">SHIPPED</option>
+            <option value="DELIVERED">DELIVERED</option>
+          </select>
+          <Button onClick={exportOrdersCsv}>Export Orders CSV</Button>
+          <Button variant="outline" onClick={exportOrderItemsCsv}>Export Line Items CSV</Button>
+          <Button variant="outline" onClick={sendLowStockAlertEmail} disabled={sendingAlert || lowStock.length === 0}>
+            {sendingAlert ? 'Sending Alert...' : 'Email Low Stock Alert'}
+          </Button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="bg-white border border-secondary rounded-lg p-5">
+          <p className="text-sm text-textLight">Revenue ({range})</p>
+          <p className="text-2xl font-bold text-primary mt-1">${totalRevenue.toFixed(2)}</p>
+          {revenueDelta !== null && (
+            <p className={`text-xs mt-1 ${revenueDelta >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+              {revenueDelta >= 0 ? '▲' : '▼'} {Math.abs(revenueDelta)}% vs previous period
+            </p>
+          )}
+        </div>
+        <div className="bg-white border border-secondary rounded-lg p-5">
+          <p className="text-sm text-textLight">Delivered Orders ({range})</p>
+          <p className="text-2xl font-bold mt-1">{deliveredCount}</p>
+          {deliveredDelta !== null && (
+            <p className={`text-xs mt-1 ${deliveredDelta >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+              {deliveredDelta >= 0 ? '▲' : '▼'} {Math.abs(deliveredDelta)}% vs previous period
+            </p>
+          )}
+        </div>
+        <div className="bg-white border border-secondary rounded-lg p-5">
+          <p className="text-sm text-textLight">Low Stock (≤ 10)</p>
+          <p className={`text-2xl font-bold mt-1 ${lowStock.length > 10 ? 'text-red-600' : lowStock.length > 0 ? 'text-amber-600' : 'text-green-600'}`}>
+            {lowStock.length}
+          </p>
+          <p className="text-xs mt-1 text-textLight">
+            {lowStock.length > 10 ? 'High risk' : lowStock.length > 0 ? 'Need restock soon' : 'Inventory healthy'}
+          </p>
+        </div>
+      </div>
+
+      <div className="bg-white border border-secondary rounded-lg p-5">
+        <h4 className="font-semibold mb-3">Revenue Trend (last 10 points)</h4>
+        {revenueSeries.length === 0 ? (
+          <p className="text-sm text-textLight">No data yet.</p>
+        ) : (
+          <div className="flex items-end gap-2 h-40">
+            {revenueSeries.map(([date, value]) => (
+              <div key={date} className="flex-1 min-w-0 flex flex-col items-center gap-1">
+                <div
+                  className="w-full bg-primary/80 rounded-t"
+                  style={{ height: `${Math.max(8, (value / maxRevenue) * 130)}px` }}
+                  title={`${date}: $${value.toFixed(2)}`}
+                />
+                <span className="text-[10px] text-textLight">{date.slice(5)}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="bg-white border border-secondary rounded-lg p-5">
+          <h4 className="font-semibold mb-3">Top Products (by sold quantity)</h4>
+          {topProducts.length === 0 ? (
+            <p className="text-sm text-textLight">No data yet.</p>
+          ) : (
+            <ul className="space-y-2 text-sm">
+              {topProducts.map(([name, qty], idx) => (
+                <li key={name} className="flex justify-between border-b border-secondary/40 pb-2">
+                  <span>{idx + 1}. {name}</span>
+                  <span className="font-semibold">{qty} sold</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        <div className="bg-white border border-secondary rounded-lg p-5">
+          <h4 className="font-semibold mb-3">Top Customers (by spend)</h4>
+          {topCustomers.length === 0 ? (
+            <p className="text-sm text-textLight">No data yet.</p>
+          ) : (
+            <ul className="space-y-2 text-sm">
+              {topCustomers.map(([name, spend], idx) => (
+                <li key={name} className="flex justify-between border-b border-secondary/40 pb-2">
+                  <span>{idx + 1}. {name}</span>
+                  <span className="font-semibold">${Number(spend).toFixed(2)}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+
+      {lowStock.length > 0 && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-5">
+          <h4 className="font-semibold text-red-700 mb-3">Low Stock Alert</h4>
+          <ul className="space-y-1 text-sm text-red-800">
+            {lowStock.slice(0, 10).map((p) => (
+              <li key={p.id}>• {p.name} — stock: {p.stock}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
 
 function ProductsManager({ products, categories, refresh, showForm, setShowForm, currentPage, lastPage, setPage, totalItems }) {
   const [formData, setFormData] = useState({ 
@@ -393,6 +673,7 @@ function OrdersManager({ orders, refresh }) {
               <span className={`px-3 py-1 text-xs font-bold rounded-full ${
                 order.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
                 order.status === 'PAID' ? 'bg-blue-100 text-blue-800' :
+                order.status === 'SHIPPED' ? 'bg-indigo-100 text-indigo-800' :
                 'bg-green-100 text-green-800'
               }`}>
                 {order.status}
@@ -401,6 +682,7 @@ function OrdersManager({ orders, refresh }) {
                 <option value="PENDING">PENDING</option>
                 <option value="PAID">PAID</option>
                 <option value="SHIPPED">SHIPPED</option>
+                <option value="DELIVERED">DELIVERED</option>
               </select>
             </div>
           </div>

@@ -118,6 +118,7 @@ export class PaymentService {
     };
 
     this.logger.log(`[MoMo] Create payment for user #${userId}, amount ${amount} VND`);
+    this.logger.log(JSON.stringify({ event: 'momo_create_payment', userId, amountVnd: Number(amount), timestamp: new Date().toISOString() }));
 
     const response = await fetch(endpoint, {
       method: 'POST',
@@ -230,7 +231,8 @@ export class PaymentService {
         }
 
         this.logger.log(`[MoMo] Created order #${createdOrder.id} and marked as PAID for user #${userId}`);
-        return { status: 200, message: 'Received callback safely' };
+        this.logger.log(JSON.stringify({ event: 'momo_callback_paid_new_flow', userId, orderId: createdOrder.id, timestamp: new Date().toISOString() }));
+        return { status: 200, message: 'Received callback safely', orderId: createdOrder.id };
       }
 
       // Backward compatible flow: old callback with orderId
@@ -243,11 +245,20 @@ export class PaymentService {
         } else {
           this.logger.log(`[MoMo] Order #${actualOrderId} already PAID (idempotent callback)`);
         }
+
+        return { status: 200, message: 'Received callback safely', orderId: actualOrderId };
       }
     } else {
       this.logger.warn(
         `[MoMo] Payment failed, orderId=${orderId || 'N/A'}, userId=${callbackCtx.userId || 'N/A'}, resultCode=${resultCode}`,
       );
+      this.logger.warn(JSON.stringify({
+        event: 'momo_callback_failed',
+        orderId: orderId || null,
+        userId: callbackCtx.userId || null,
+        resultCode: Number(resultCode),
+        timestamp: new Date().toISOString(),
+      }));
     }
 
     return { status: 200, message: 'Received callback safely' };

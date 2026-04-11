@@ -1,21 +1,39 @@
 import { Link } from 'react-router-dom';
-import { Star } from 'lucide-react';
+import { Heart, Star } from 'lucide-react';
+import ImageWithFallback from './ImageWithFallback';
+import useStore from '../store/useStore';
 
 export default function ProductCard({ product }) {
   const imageUrl = (Array.isArray(product.images) && product.images.length > 0 && product.images[0]) 
     ? product.images[0] 
     : (product.image || 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&q=80&w=800');
 
+  const wishlist = useStore((s) => s.wishlist);
+  const toggleWishlist = useStore((s) => s.toggleWishlist);
+  const inWishlist = wishlist.includes(product.id);
+
   return (
     <Link to={`/product/${product.id}`} className="group block bg-white rounded-2xl overflow-hidden border border-secondary/50 hover:shadow-xl transition-all duration-500 hover:-translate-y-1 h-full">
       <div className="relative aspect-square md:aspect-[4/5] overflow-hidden bg-secondary/10">
-        <img 
-          src={imageUrl} 
-          alt={product.name} 
+        <ImageWithFallback
+          src={imageUrl}
+          alt={product.name}
           className="object-cover w-full h-full group-hover:scale-110 transition-transform duration-700"
           loading="lazy"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+        <button
+          type="button"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            toggleWishlist(product.id);
+          }}
+          className="absolute top-3 right-3 bg-white/90 border border-secondary rounded-full p-2 shadow-sm hover:bg-white"
+          aria-label="Toggle wishlist"
+        >
+          <Heart className={`w-4 h-4 ${inWishlist ? 'text-red-500 fill-red-500' : 'text-textLight'}`} />
+        </button>
         {product.stock < 10 && (
           <div className="absolute top-4 left-4 bg-red-500 text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest backdrop-blur-md">
             Low Stock

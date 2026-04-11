@@ -5,10 +5,13 @@ import { getProductById, getProducts } from '../services/api';
 import useStore from '../store/useStore';
 import Button from '../components/Button';
 import ProductCard from '../components/ProductCard';
+import { useToast } from '../components/ToastProvider';
+import ImageWithFallback from '../components/ImageWithFallback';
 
 export default function ProductDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { showToast } = useToast();
   const [product, setProduct] = useState(null);
   const [relatedProducts, setRelatedProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -46,7 +49,7 @@ export default function ProductDetailPage() {
   const handleAddToCart = () => {
     if (product) {
       addToCart(product, quantity);
-      alert(`Added ${quantity} ${product.name} to cart.`);
+      showToast(`Added ${quantity} ${product.name} to cart.`, 'success');
     }
   };
 
@@ -90,9 +93,9 @@ export default function ProductDetailPage() {
         {/* Gallery */}
         <div className="w-full md:w-1/2">
           <div className="bg-secondary/10 rounded-lg overflow-hidden border border-secondary aspect-square">
-            <img 
-              src={product.images?.[0] || product.image || 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&q=80&w=800'} 
-              alt={product.name} 
+            <ImageWithFallback
+              src={product.images?.[0] || product.image || 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&q=80&w=800'}
+              alt={product.name}
               className="w-full h-full object-cover"
             />
           </div>

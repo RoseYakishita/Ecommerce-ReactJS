@@ -52,6 +52,7 @@ export default function MobileMenu({ isOpen, onClose, user }) {
           <div className="flex flex-col px-8 space-y-1">
             {[
               { to: '/products', label: 'Products' },
+              { to: '/wishlist', label: 'Wishlist' },
               { to: '/about', label: 'About Us' },
               { to: '/contact', label: 'Contact' },
             ].map((item) => (

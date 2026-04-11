@@ -1,6 +1,20 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { getCartApi, addToCartApi, updateCartItemApi, removeCartItemApi } from '../services/api';
+import {
+  getCartApi,
+  addToCartApi,
+  updateCartItemApi,
+  removeCartItemApi,
+  getWishlistApi,
+  addToWishlistApi,
+  removeFromWishlistApi,
+} from '../services/api';
+
+const notify = (message, type = 'info') => {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('app:toast', { detail: { message, type } }));
+  }
+};
 
 const useStore = create(
   persist(
@@ -9,10 +23,11 @@ const useStore = create(
       user: null,
       token: null,
       login: (userData, token) => set({ user: userData, token }),
-      logout: () => set({ user: null, token: null, cart: [] }), // Clear cart on logout
+      logout: () => set({ user: null, token: null, cart: [], wishlist: [] }), // Clear user data on logout
 
-      // Cart State (Local cache, synced with backend when possible)
+      // Cart/Wishlist State (Local cache, synced with backend when possible)
       cart: [],
+      wishlist: [],
       
       // Async Cart Actions
       fetchCart: async () => {
@@ -37,6 +52,38 @@ const useStore = create(
         }
       },
 
+      fetchWishlist: async () => {
+        if (!get().token) return;
+        try {
+          const data = await getWishlistApi();
+          set({ wishlist: data.map((x) => x.productId) });
+        } catch (error) {
+          console.error('Failed to fetch wishlist', error);
+        }
+      },
+
+      toggleWishlist: async (productId) => {
+        if (!get().token) {
+          notify('Please login first to use wishlist', 'error');
+          return;
+        }
+
+        const exists = get().wishlist.includes(productId);
+        try {
+          if (exists) {
+            await removeFromWishlistApi(productId);
+            set({ wishlist: get().wishlist.filter((id) => id !== productId) });
+            notify('Removed from wishlist', 'info');
+          } else {
+            await addToWishlistApi(productId);
+            set({ wishlist: [...get().wishlist, productId] });
+            notify('Added to wishlist', 'success');
+          }
+        } catch (error) {
+          console.error('Failed to update wishlist', error);
+        }
+      },
+
       addToCart: async (product, quantity = 1) => {
         if (get().token) {
           try {
@@ -46,7 +93,7 @@ const useStore = create(
             console.error("Failed to add to cart", error);
           }
         } else {
-          alert('Please login first to use the cart');
+          notify('Please login first to use the cart', 'error');
         }
       },
 

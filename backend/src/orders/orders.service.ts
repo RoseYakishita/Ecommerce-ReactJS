@@ -1,6 +1,6 @@
 import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, In } from 'typeorm';
 import { Order, OrderStatus, PaymentMethod } from './entities/order.entity';
 import { OrderItem } from './entities/order-item.entity';
 import { CartsService } from '../carts/carts.service';
@@ -80,11 +80,14 @@ export class OrdersService {
   }
 
   findAll(userId?: number) {
-    const where = userId ? { userId } : {};
+    const where = userId
+      ? { userId }
+      : { status: In([OrderStatus.PAID, OrderStatus.SHIPPED, OrderStatus.DELIVERED]) };
+
     return this.ordersRepository.find({
       where,
       relations: ['items', 'items.product'],
-      order: { createdAt: 'DESC' }
+      order: { createdAt: 'DESC' },
     });
   }
 
@@ -102,7 +105,11 @@ export class OrdersService {
 
   async updateStatus(id: number, updateOrderStatusDto: UpdateOrderStatusDto) {
     const order = await this.findOne(id);
+    const fromStatus = order.status;
     order.status = updateOrderStatusDto.status;
-    return this.ordersRepository.save(order);
+    const saved = await this.ordersRepository.save(order);
+
+    this.logger.log(`[Order Audit] Order #${id} status changed: ${fromStatus} -> ${saved.status}`);
+    return saved;
   }
 }

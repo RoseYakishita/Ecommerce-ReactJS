@@ -4,7 +4,7 @@ import useStore from '../store/useStore';
 // Access the API on port 3000 (if running via npm) or 3001 (if running via Docker as you configured)
 // Update this if your backend port is different.
 const api = axios.create({
-  baseURL: 'http://localhost:3000/api', 
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api',
 });
 
 // Interceptor to inject JWT token into requests
@@ -17,6 +17,20 @@ api.interceptors.request.use(
     return config;
   },
   (error) => Promise.reject(error)
+);
+
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    const apiMessage =
+      error?.response?.data?.message ||
+      error?.response?.data?.error ||
+      error?.message ||
+      'Unexpected error';
+
+    error.userMessage = Array.isArray(apiMessage) ? apiMessage.join(', ') : String(apiMessage);
+    return Promise.reject(error);
+  },
 );
 
 // --- Auth Endpoints ---
@@ -77,6 +91,26 @@ export const createOrderApi = async (paymentMethod = 'CASH') => {
 
 export const createMomoPaymentApi = async () => {
   const response = await api.post('/payment/momo/create');
+  return response.data;
+};
+
+export const sendContactMessageApi = async (payload) => {
+  const response = await api.post('/contact/send', payload);
+  return response.data;
+};
+
+export const getWishlistApi = async () => {
+  const response = await api.get('/wishlist');
+  return response.data;
+};
+
+export const addToWishlistApi = async (productId) => {
+  const response = await api.post('/wishlist', { productId });
+  return response.data;
+};
+
+export const removeFromWishlistApi = async (productId) => {
+  const response = await api.delete('/wishlist', { data: { productId } });
   return response.data;
 };
 
