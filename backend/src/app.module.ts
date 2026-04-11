@@ -18,6 +18,7 @@ import { AiModule } from './ai/ai.module';
 import { PaymentModule } from './payment/payment.module';
 import { ContactModule } from './contact/contact.module';
 import { WishlistModule } from './wishlist/wishlist.module';
+import { DataTransferModule } from './data-transfer/data-transfer.module';
 
 @Module({
   imports: [
@@ -50,6 +51,7 @@ import { WishlistModule } from './wishlist/wishlist.module';
     PaymentModule,
     ContactModule,
     WishlistModule,
+    DataTransferModule,
   ],
   controllers: [AppController],
   providers: [

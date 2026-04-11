@@ -114,6 +114,16 @@ export const removeFromWishlistApi = async (productId) => {
   return response.data;
 };
 
+export const exportDataApi = async () => {
+  const response = await api.get('/data-transfer/export');
+  return response.data;
+};
+
+export const importDataApi = async (data, replaceExisting = false) => {
+  const response = await api.post('/data-transfer/import', { data, replaceExisting });
+  return response.data;
+};
+
 // --- Admin Endpoints ---
 export const getAllOrdersApi = async () => {
   const response = await api.get('/orders');
