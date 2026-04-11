@@ -11,6 +11,8 @@ import {
   updateProductApi,
   updateCategoryApi,
   sendContactMessageApi,
+  exportDataApi,
+  importDataApi,
 } from '../services/api';
 import Button from '../components/Button';
 
@@ -123,6 +125,7 @@ function AnalyticsPanel({ products, orders }) {
   const [range, setRange] = useState('30d');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [sendingAlert, setSendingAlert] = useState(false);
+  const [importing, setImporting] = useState(false);
 
   const now = new Date();
   const periodDays = range === '7d' ? 7 : range === '30d' ? 30 : null;
@@ -214,6 +217,42 @@ function AnalyticsPanel({ products, orders }) {
     }
   };
 
+  const handleExportFullData = async () => {
+    try {
+      const payload = await exportDataApi();
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `ecom-data-export-${new Date().toISOString().slice(0, 10)}.json`;
+      link.click();
+      URL.revokeObjectURL(url);
+      alert('Data export completed.');
+    } catch (err) {
+      alert(`Export failed: ${err.userMessage || err.message}`);
+    }
+  };
+
+  const handleImportFullData = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const replaceExisting = window.confirm('Import with replace existing data? Click OK = replace all current data, Cancel = merge/upsert.');
+    try {
+      setImporting(true);
+      const text = await file.text();
+      const json = JSON.parse(text);
+      const result = await importDataApi(json.data || json, replaceExisting);
+      alert(`Import done: ${JSON.stringify(result.imported)}`);
+      window.location.reload();
+    } catch (err) {
+      alert(`Import failed: ${err.userMessage || err.message}`);
+    } finally {
+      setImporting(false);
+      event.target.value = '';
+    }
+  };
+
   const exportOrdersCsv = () => {
     const header = ['orderId', 'userId', 'status', 'totalAmount', 'createdAt'];
     const rows = filteredOrders.map((o) => [o.id, o.userId, o.status, o.totalAmount, o.createdAt]);
@@ -290,6 +329,17 @@ function AnalyticsPanel({ products, orders }) {
           </select>
           <Button onClick={exportOrdersCsv}>Export Orders CSV</Button>
           <Button variant="outline" onClick={exportOrderItemsCsv}>Export Line Items CSV</Button>
+          <Button variant="outline" onClick={handleExportFullData}>Export Full Data</Button>
+          <label className="px-3 py-2 border border-secondary rounded text-sm cursor-pointer hover:bg-secondary/20">
+            {importing ? 'Importing...' : 'Import Data'}
+            <input
+              type="file"
+              accept="application/json"
+              onChange={handleImportFullData}
+              className="hidden"
+              disabled={importing}
+            />
+          </label>
           <Button variant="outline" onClick={sendLowStockAlertEmail} disabled={sendingAlert || lowStock.length === 0}>
             {sendingAlert ? 'Sending Alert...' : 'Email Low Stock Alert'}
           </Button>
