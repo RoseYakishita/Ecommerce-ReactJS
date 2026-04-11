@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useStore from '../store/useStore';
 import Button from '../components/Button';
+import ImageWithFallback from '../components/ImageWithFallback';
 import api from '../services/api';
 
 export default function ProfilePage() {
@@ -79,17 +80,36 @@ export default function ProfilePage() {
                       <span className={`inline-block px-2 py-1 mt-1 text-[10px] uppercase font-bold tracking-wider rounded-full ${
                         order.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
                         order.status === 'PAID' ? 'bg-blue-100 text-blue-800' :
+                        order.status === 'SHIPPED' ? 'bg-indigo-100 text-indigo-800' :
                         'bg-green-100 text-green-800'
                       }`}>
                         {order.status}
                       </span>
                     </div>
                   </div>
+
+                  <div className="px-4 pt-3 pb-2">
+                    <div className="flex items-center gap-2 text-[10px] uppercase font-semibold tracking-wider">
+                      {['PENDING', 'PAID', 'SHIPPED', 'DELIVERED'].map((step, idx, arr) => {
+                        const orderFlow = ['PENDING', 'PAID', 'SHIPPED', 'DELIVERED'];
+                        const activeIndex = Math.max(0, orderFlow.indexOf(order.status));
+                        const isActive = idx <= activeIndex;
+                        return (
+                          <div key={step} className="flex items-center gap-2">
+                            <span className={`px-2 py-1 rounded-full ${isActive ? 'bg-primary text-white' : 'bg-secondary text-textLight'}`}>
+                              {step}
+                            </span>
+                            {idx < arr.length - 1 && <span className="text-secondary">→</span>}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
                   <div className="p-4 divide-y divide-secondary/50">
                     {order.items?.map(item => (
                       <div key={item.id} className="py-2 flex justify-between items-center text-sm">
                         <div className="flex gap-4 items-center">
-                          <img src={item.product?.images?.[0] || 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&q=80&w=200'} alt={item.product?.name} className="w-12 h-12 object-cover rounded" />
+                          <ImageWithFallback src={item.product?.images?.[0] || 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&q=80&w=200'} alt={item.product?.name} className="w-12 h-12 object-cover rounded" />
                           <div>
                             <p className="font-medium">{item.product?.name}</p>
                             <p className="text-textLight">Qty: {item.quantity}</p>

@@ -9,16 +9,18 @@ export default function ProductsPage() {
   const categoryParam = searchParams.get('category');
   const searchParam = searchParams.get('search');
   const pageParam = parseInt(searchParams.get('page') || '1', 10);
+  const sortParam = searchParams.get('sort') || 'featured';
   
   const [products, setProducts] = useState([]);
   const [totalResults, setTotalResults] = useState(0);
   const [lastPage, setLastPage] = useState(1);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   
   // Filters
   const [activeCategory, setActiveCategory] = useState(categoryParam || 'all');
-  const [sortBy, setSortBy] = useState('featured'); // featured, price-asc, price-desc, newest
+  const [sortBy, setSortBy] = useState(sortParam); // featured, price-asc, price-desc, newest
   const [currentPage, setCurrentPage] = useState(pageParam);
 
   useEffect(() => {
@@ -30,45 +32,41 @@ export default function ProductsPage() {
   }, [pageParam]);
 
   useEffect(() => {
+    setSortBy(sortParam);
+  }, [sortParam]);
+
+  useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
+      setError('');
       try {
         const params = {
           page: currentPage,
           limit: 12, // 4 rows of 3 on desktop
           search: searchParam || undefined,
-          categoryId: activeCategory !== 'all' ? activeCategory : undefined
+          categoryId: activeCategory !== 'all' ? activeCategory : undefined,
+          sort: sortBy,
         };
-        
+
         const [response, categoriesData] = await Promise.all([
           getProducts(params),
-          getCategories()
+          getCategories(),
         ]);
-        
+
         const { data: productsData, total, lastPage: totalPages } = response;
-        
-        let processed = [...productsData];
-        
-        // Sorting (in-memory for now, could be backend)
-        if (sortBy === 'price-asc') {
-          processed.sort((a, b) => a.price - b.price);
-        } else if (sortBy === 'price-desc') {
-          processed.sort((a, b) => b.price - a.price);
-        } else if (sortBy === 'newest') {
-          processed.sort((a, b) => b.id - a.id);
-        }
-        
-        setProducts(processed);
+
+        setProducts(productsData);
         setCategories(categoriesData);
         setTotalResults(total);
         setLastPage(totalPages);
       } catch (error) {
-        console.error("Error fetching products:", error);
+        console.error('Error fetching products:', error);
+        setError('Failed to load products. Please try again.');
       } finally {
         setLoading(false);
       }
     };
-    
+
     fetchData();
   }, [activeCategory, sortBy, searchParam, currentPage]);
 
@@ -109,7 +107,10 @@ export default function ProductsPage() {
                   <button 
                     onClick={() => {
                       setActiveCategory('all');
-                      setSearchParams({});
+                      const next = Object.fromEntries(searchParams.entries());
+                      delete next.category;
+                      next.page = '1';
+                      setSearchParams(next);
                     }}
                     className={`text-sm w-full text-left transition-colors ${activeCategory === 'all' ? 'text-primary font-semibold' : 'text-textLight hover:text-textMain'}`}
                   >
@@ -120,10 +121,13 @@ export default function ProductsPage() {
                   <li key={category.id}>
                     <button 
                       onClick={() => {
-                        setActiveCategory(category.id);
-                        setSearchParams({ category: category.id });
+                        setActiveCategory(String(category.id));
+                        const next = Object.fromEntries(searchParams.entries());
+                        next.category = String(category.id);
+                        next.page = '1';
+                        setSearchParams(next);
                       }}
-                      className={`text-sm w-full text-left capitalize transition-colors ${activeCategory === category.id ? 'text-primary font-semibold' : 'text-textLight hover:text-textMain'}`}
+                      className={`text-sm w-full text-left capitalize transition-colors ${activeCategory === String(category.id) ? 'text-primary font-semibold' : 'text-textLight hover:text-textMain'}`}
                     >
                       {category.name}
                     </button>
@@ -147,7 +151,14 @@ export default function ProductsPage() {
                 <select 
                   className="appearance-none bg-transparent pr-8 pl-4 py-2 border border-secondary rounded hover:border-textLight focus:outline-none focus:border-primary cursor-pointer text-sm font-medium"
                   value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value)}
+                  onChange={(e) => {
+                    const nextSort = e.target.value;
+                    setSortBy(nextSort);
+                    const next = Object.fromEntries(searchParams.entries());
+                    next.sort = nextSort;
+                    next.page = '1';
+                    setSearchParams(next);
+                  }}
                 >
                   <option value="featured">Featured</option>
                   <option value="price-asc">Price: Low to High</option>
@@ -165,6 +176,17 @@ export default function ProductsPage() {
               {[...Array(6)].map((_, i) => (
                 <div key={i} className="bg-secondary/20 aspect-[3/4] rounded-lg animate-pulse"></div>
               ))}
+            </div>
+          ) : error ? (
+            <div className="text-center py-20">
+              <h3 className="text-xl font-medium mb-2">Something went wrong</h3>
+              <p className="text-textLight">{error}</p>
+              <button
+                onClick={() => window.location.reload()}
+                className="mt-6 text-primary hover:underline font-medium"
+              >
+                Retry
+              </button>
             </div>
           ) : products.length > 0 ? (
             <>

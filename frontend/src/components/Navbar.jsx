@@ -83,6 +83,9 @@ export default function Navbar() {
             </AnimatePresence>
           </div>
           
+          <Link to="/wishlist" className="p-2.5 bg-secondary/30 hover:bg-secondary/50 border border-secondary/20 rounded-full transition-all text-textMain shadow-sm active:scale-95" title="Wishlist">
+            ❤
+          </Link>
           <Link to={user ? "/profile" : "/login"} className="p-2.5 bg-secondary/30 hover:bg-secondary/50 border border-secondary/20 rounded-full transition-all text-textMain shadow-sm active:scale-95">
             <User className="w-5 h-5" />
           </Link>

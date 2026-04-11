@@ -2,11 +2,13 @@ import { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import Button from '../components/Button';
 import api from '../services/api';
+import useStore from '../store/useStore';
 
 export default function PaymentResultPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [verifying, setVerifying] = useState(true);
+  const [paidOrderId, setPaidOrderId] = useState(null);
 
   const resultCode = searchParams.get('resultCode');
   const message = searchParams.get('message');
@@ -20,7 +22,10 @@ export default function PaymentResultPage() {
     const verifyPayment = async () => {
       try {
         if (resultCode == 0) {
-          await api.get(`/payment/momo/callback?${searchParams.toString()}`);
+          const verifyRes = await api.get(`/payment/momo/callback?${searchParams.toString()}`);
+          if (verifyRes?.data?.orderId) {
+            setPaidOrderId(verifyRes.data.orderId);
+          }
           // New flow: order is created after successful callback, so refresh cart now.
           await useStore.getState().fetchCart();
         }
@@ -74,12 +79,12 @@ export default function PaymentResultPage() {
         
         <p className="text-textLight mb-8">
           {isSuccess 
-            ? "Your order has been paid and is now being processed. Thank you for shopping with us! Tự động quay về trang chủ sau 2.5 giây..." 
+            ? `Your order has been paid and is now being processed.${paidOrderId ? ` Order #${paidOrderId}.` : ''} Thank you for shopping with us! Redirecting to home in 2.5 seconds...` 
             : `Transaction could not be completed. Reason: ${message || 'Unknown error'}`}
         </p>
 
         <div className="space-y-3">
-          <Button onClick={() => navigate('/orders')} className="w-full">
+          <Button onClick={() => navigate('/profile')} className="w-full">
             View My Orders
           </Button>
           {!isSuccess && (

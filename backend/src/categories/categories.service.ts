@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Category } from './entities/category.entity';
@@ -6,14 +6,18 @@ import { CreateCategoryDto } from './dto/create-category.dto';
 
 @Injectable()
 export class CategoriesService {
+  private readonly logger = new Logger(CategoriesService.name);
+
   constructor(
     @InjectRepository(Category)
     private categoriesRepository: Repository<Category>,
   ) {}
 
-  create(createCategoryDto: CreateCategoryDto) {
+  async create(createCategoryDto: CreateCategoryDto) {
     const category = this.categoriesRepository.create(createCategoryDto);
-    return this.categoriesRepository.save(category);
+    const saved = await this.categoriesRepository.save(category);
+    this.logger.log(`[Category Audit] Created category #${saved.id} (${saved.name})`);
+    return saved;
   }
 
   findAll() {
@@ -31,11 +35,14 @@ export class CategoriesService {
   async update(id: number, updateCategoryDto: Partial<CreateCategoryDto>) {
     const category = await this.findOne(id);
     Object.assign(category, updateCategoryDto);
-    return this.categoriesRepository.save(category);
+    const saved = await this.categoriesRepository.save(category);
+    this.logger.log(`[Category Audit] Updated category #${saved.id} (${saved.name})`);
+    return saved;
   }
 
   async remove(id: number) {
     const category = await this.findOne(id);
+    this.logger.warn(`[Category Audit] Deleted category #${category.id} (${category.name})`);
     return this.categoriesRepository.remove(category);
   }
 }

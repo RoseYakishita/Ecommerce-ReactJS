@@ -3,10 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import useStore from '../store/useStore';
 import Button from '../components/Button';
 import { loginApi, registerApi } from '../services/api';
+import { useToast } from '../components/ToastProvider';
 
 export default function LoginPage() {
   const navigate = useNavigate();
   const login = useStore(state => state.login);
+  const { showToast } = useToast();
   const [isLogin, setIsLogin] = useState(true);
   const [formData, setFormData] = useState({
     email: '',
@@ -25,16 +27,17 @@ export default function LoginPage() {
         const data = await loginApi({ email: formData.email, password: formData.password });
         login(data.user, data.access_token);
         useStore.getState().fetchCart();
+        showToast('Login successful! Welcome back 👋', 'success');
         navigate('/');
       } else {
         const data = await registerApi({ name: formData.name, email: formData.email, password: formData.password });
         login(data.user, data.access_token);
         useStore.getState().fetchCart();
-        alert('Registration successful! Welcome to our store 🎉');
+        showToast('Registration successful! Welcome to our store 🎉', 'success');
         navigate('/');
       }
     } catch (err) {
-      alert("Error: " + (err.response?.data?.message || err.message));
+      showToast(`Error: ${err.userMessage || err.message}`, 'error');
     }
   };
 

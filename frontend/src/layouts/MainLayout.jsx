@@ -7,13 +7,15 @@ import useStore from '../store/useStore';
 
 export default function MainLayout() {
   const fetchCart = useStore(state => state.fetchCart);
+  const fetchWishlist = useStore(state => state.fetchWishlist);
   const token = useStore(state => state.token);
 
   useEffect(() => {
     if (token) {
       fetchCart();
+      fetchWishlist();
     }
-  }, [token, fetchCart]);
+  }, [token, fetchCart, fetchWishlist]);
 
   return (
     <div className="min-h-screen flex flex-col font-sans text-textMain bg-background">
