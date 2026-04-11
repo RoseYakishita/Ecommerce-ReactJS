@@ -8,7 +8,7 @@ Hướng dẫn chạy project (frontend + backend + database) và cách **export
 
 - Node.js 20+
 - npm 10+
-- Docker Desktop (khuyên dùng để chạy MySQL nhanh)
+- Docker Desktop
 
 ---
 
@@ -20,9 +20,7 @@ Hướng dẫn chạy project (frontend + backend + database) và cách **export
 
 ---
 
-## 3) Cách chạy nhanh (khuyên dùng)
-
-### Cách A — chạy local frontend + backend (dev)
+## 3) Cách chạy
 
 #### Backend
 ```bash
@@ -42,8 +40,6 @@ npm run dev -- --host 0.0.0.0 --port 5173
 Mặc định web: `http://localhost:5173`
 
 ---
-
-### Cách B — chạy backend + db bằng Docker
 
 Ở thư mục gốc project:
 ```bash
